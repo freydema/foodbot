@@ -31,7 +31,7 @@ public class OutputActor extends AbstractActor {
     }
 
     private void processAction(SendMessageAction action){
-        SendMessage sendMessageRequest = new SendMessage(action.getChatId(), action.getText());
+        SendMessage sendMessageRequest = new SendMessage(action.getChatId(), action.getText()).disableNotification();
         botApiClient.post(sendMessageRequest);
         log.info("Sent: {}", action);
     }

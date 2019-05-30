@@ -1,11 +1,14 @@
 package com.freydema.foodbot.actors;
 
 import akka.actor.AbstractActor;
-import akka.actor.AbstractLoggingActor;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.event.Logging;
 import akka.event.LoggingAdapter;
+import com.freydema.foodbot.commands.AddFood;
+import com.freydema.foodbot.commands.ListFood;
+import com.freydema.foodbot.commands.RemoveFood;
+import com.freydema.foodbot.commands.Start;
 import org.telegram.telegrambots.meta.api.objects.Update;
 
 import java.util.ArrayList;
@@ -13,16 +16,16 @@ import java.util.List;
 
 public class InputActor extends AbstractActor {
 
-    public static Props props(ActorRef foodAdvisorActor, ActorRef outputActor) {
-        return Props.create(InputActor.class, foodAdvisorActor, outputActor);
+    public static Props props(ActorRef foodSupervisor, ActorRef outputActor) {
+        return Props.create(InputActor.class, foodSupervisor, outputActor);
     }
 
     private final LoggingAdapter log = Logging.getLogger(getContext().getSystem(), this);
-    private final ActorRef foodAdvisorActor;
+    private final ActorRef foodSupervisor;
     private final ActorRef outputActor;
 
-    public InputActor(ActorRef foodAdvisorActor, ActorRef outputActor) {
-        this.foodAdvisorActor = foodAdvisorActor;
+    public InputActor(ActorRef foodSupervisor, ActorRef outputActor) {
+        this.foodSupervisor = foodSupervisor;
         this.outputActor = outputActor;
     }
 
@@ -61,8 +64,14 @@ public class InputActor extends AbstractActor {
 
     private void handleCommand(Long chatId, String commandName, List<String> parameters) {
         switch (commandName) {
+            case "/start":
+                handleStartCommand(chatId);
+                break;
             case "/add":
                 handleAddFoodCommand(chatId, commandName, parameters);
+                break;
+            case "/remove":
+                handleRemoveFoodCommand(chatId, commandName, parameters);
                 break;
             case "/list":
                 handleListFoodCommand(chatId, commandName, parameters);
@@ -74,13 +83,22 @@ public class InputActor extends AbstractActor {
     }
 
 
+    private void handleStartCommand(Long chatId) {
+        foodSupervisor.tell(new Start(chatId), this.sender());
+    }
+
     private void handleAddFoodCommand(Long chatId, String commandName, List<String> parameters) {
         String description = String.join(" ", parameters);
-        foodAdvisorActor.tell(new FoodAdvisorActor.AddFoodCmd(chatId, description), this.sender());
+        foodSupervisor.tell(new AddFood(chatId, description), this.sender());
+    }
+
+    private void handleRemoveFoodCommand(Long chatId, String commandName, List<String> parameters) {
+        int itemIndex = Integer.parseInt(parameters.get(0));
+        foodSupervisor.tell(new RemoveFood(chatId, itemIndex), this.sender());
     }
 
     private void handleListFoodCommand(Long chatId, String commandName, List<String> parameters) {
-        foodAdvisorActor.tell(new FoodAdvisorActor.ListFoodCmd(chatId), this.sender());
+        foodSupervisor.tell(new ListFood(chatId), this.sender());
     }
 
     private void handleUnknownCommand(Long chatId, String commandName, List<String> parameters) {

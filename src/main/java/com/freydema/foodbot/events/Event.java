@@ -1,4 +1,4 @@
-package com.freydema.foodbot;
+package com.freydema.foodbot.events;
 
 import java.io.Serializable;
 

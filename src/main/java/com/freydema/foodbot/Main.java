@@ -11,7 +11,8 @@ import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
 import akka.stream.ActorMaterializer;
 import akka.stream.javadsl.Flow;
-import com.freydema.foodbot.actors.FoodAdvisorActor;
+import com.freydema.foodbot.actors.FoodActor;
+import com.freydema.foodbot.actors.FoodSupervisor;
 import com.freydema.foodbot.actors.InputActor;
 import com.freydema.foodbot.actors.OutputActor;
 import com.typesafe.config.Config;
@@ -34,13 +35,13 @@ public class Main {
         String webhookHost = config.getString("webhookHost");
         int webhookPort = config.getInt("webhookPort");
         String webhookName = config.getString("webhookName");
+
         ActorSystem system = ActorSystem.create("echobot");
         Http http = Http.get(system);
         BotApiClient botApiClient = new BotApiClient(botToken, http);
-
         ActorRef outputActor = system.actorOf(OutputActor.props(botApiClient), "output");
-        ActorRef foodAdvisorActor = system.actorOf(FoodAdvisorActor.props(outputActor), "foodAdvisor");
-        ActorRef inputActor = system.actorOf(InputActor.props(foodAdvisorActor, outputActor), "input");
+        ActorRef foodSupervisor = system.actorOf(FoodSupervisor.props(outputActor), "foodSupervisor");
+        ActorRef inputActor = system.actorOf(InputActor.props(foodSupervisor, outputActor), "input");
 
         ActorMaterializer materializer = ActorMaterializer.create(system);
         BotApiWebhook webhook = new BotApiWebhook(webhookName, system, inputActor);
